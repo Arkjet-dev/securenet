@@ -14,7 +14,6 @@ function encryptMessage() {
     
     let encryptedText = jsonString;
 
-    // Encrypt 5 times
     for (let i = 0; i < 5; i++) {
         encryptedText = CryptoJS.AES.encrypt(encryptedText, password).toString();
     }
