@@ -11,7 +11,20 @@ function encryptMessage() {
 
     let data = { name, email, message };
     let jsonString = JSON.stringify(data);
+    
+    let encryptedText = jsonString;
 
-    let encrypted = CryptoJS.AES.encrypt(jsonString, password).toString();
-    document.getElementById("encryptedMessage").value = encrypted;
+    // Encrypt 5 times
+    for (let i = 0; i < 5; i++) {
+        encryptedText = CryptoJS.AES.encrypt(encryptedText, password).toString();
+    }
+
+    document.getElementById("encryptedMessage").value = encryptedText;
+}
+
+function copyText() {
+    let textArea = document.getElementById("encryptedMessage");
+    textArea.select();
+    document.execCommand("copy");
+    alert("Encrypted message copied!");
 }
