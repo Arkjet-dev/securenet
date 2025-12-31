@@ -2,45 +2,406 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classified Message Encryptor</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>STS Flight Data File</title>
+    <style>
+        /* --- RESET & VARIABLES --- */
+        :root {
+            --nasa-blue: #0B3D91;
+            --nasa-red: #FC3D21;
+            --hud-cyan: #00F0FF;
+            --hud-green: #00FF41;
+            --hud-amber: #FFB000;
+            --glass-bg: rgba(20, 20, 30, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --blur: 20px;
+            --font-tech: 'Courier New', Courier, monospace;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        body {
+            background-color: #000;
+            background-image: 
+                radial-gradient(circle at 50% 10%, #1a1a2e 0%, #000 60%),
+                repeating-linear-gradient(0deg, transparent 0, transparent 1px, rgba(0, 240, 255, 0.03) 1px, rgba(0, 240, 255, 0.03) 2px);
+            background-size: 100% 100%, 100% 4px;
+            color: #fff;
+            font-family: var(--font-ui);
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- HEADER --- */
+        header {
+            padding: calc(var(--safe-top) + 16px) 24px 16px;
+            background: rgba(0,0,0,0.8);
+            border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(var(--blur));
+            -webkit-backdrop-filter: blur(var(--blur));
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        
+        /* CSS-only NASA Meatball Approximation for speed/compatibility */
+        .nasa-logo {
+            width: 44px; height: 44px;
+            background: var(--nasa-blue);
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #fff;
+        }
+        .nasa-logo::before {
+            content: ''; position: absolute;
+            top: 12px; left: -10px; width: 60px; height: 10px;
+            background: var(--nasa-red);
+            transform: rotate(-20deg);
+            border-radius: 50%;
+        }
+        .nasa-logo::after {
+            content: 'NASA';
+            position: absolute; top: 12px; left: 2px;
+            color: #fff; font-family: serif; font-weight: bold;
+            font-size: 11px; letter-spacing: 1px;
+        }
+
+        .mission-title {
+            font-family: var(--font-tech);
+            font-size: 12px;
+            color: var(--hud-cyan);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .mission-id { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+
+        /* --- PROGRESS --- */
+        .progress-container {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            width: 100%;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--hud-green);
+            box-shadow: 0 0 10px var(--hud-green);
+            transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* --- CHECKLIST SCROLL AREA --- */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px calc(var(--safe-bottom) + 100px);
+            scroll-behavior: smooth;
+        }
+
+        .phase-header {
+            font-family: var(--font-tech);
+            color: var(--hud-amber);
+            font-size: 11px;
+            margin: 24px 0 8px 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .phase-header::after {
+            content: ''; flex: 1; height: 1px; background: var(--hud-amber); opacity: 0.3;
+        }
+
+        .checklist-group {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: background 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+        .check-item:last-child { border-bottom: none; }
+        .check-item:active { background: rgba(255,255,255,0.05); }
+
+        /* Checkbox Design */
+        .checkbox {
+            width: 24px; height: 24px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            margin-right: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .check-item.checked .checkbox {
+            background: var(--hud-green);
+            border-color: var(--hud-green);
+            box-shadow: 0 0 12px rgba(0, 255, 65, 0.4);
+        }
+        
+        .check-item.checked .checkbox::after {
+            content: '';
+            width: 6px; height: 12px;
+            border: solid #000;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg) translate(-1px, -1px);
+        }
+
+        .item-text { flex: 1; }
+        .item-title { font-size: 16px; font-weight: 500; margin-bottom: 2px; color: #fff; }
+        .item-meta { 
+            font-family: var(--font-tech); 
+            font-size: 11px; 
+            color: rgba(255,255,255,0.5); 
+            text-transform: uppercase;
+        }
+        .check-item.checked .item-title { color: rgba(255,255,255,0.4); text-decoration: line-through; }
+
+        /* --- FOOTER ACTION --- */
+        .launch-control {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            padding: 20px 24px calc(var(--safe-bottom) + 20px);
+            background: linear-gradient(to top, rgba(0,0,0,1) 20%, rgba(0,0,0,0));
+            z-index: 200;
+            text-align: center;
+            pointer-events: none; /* Let clicks pass through until active */
+        }
+
+        .launch-btn {
+            background: #222;
+            color: #555;
+            border: 1px solid #333;
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+            pointer-events: auto;
+        }
+
+        .launch-btn.ready {
+            background: var(--nasa-red);
+            color: white;
+            border: 1px solid #ff5e5e;
+            box-shadow: 0 0 30px rgba(252, 61, 33, 0.4);
+            cursor: pointer;
+        }
+        .launch-btn.ready:active { transform: scale(0.98); }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        .status-blink { animation: pulse 2s infinite; color: var(--hud-green); font-family: var(--font-tech); font-size: 10px; margin-left: auto; }
+
+        /* --- MODAL --- */
+        .launch-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000;
+            z-index: 1000;
+            display: flex; flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 1s;
+        }
+        .launch-overlay.active { opacity: 1; pointer-events: auto; }
+        .rocket { font-size: 80px; margin-bottom: 20px; animation: shake 0.5s infinite alternate; display: none; }
+        .launch-overlay.active .rocket { display: block; }
+        @keyframes shake { from { transform: translateY(0px); } to { transform: translateY(5px); } }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="title">⚠️ CLASSIFIED ENCRYPTOR ⚠️</h1>
-        <p class="subtitle">Secure Transmission System</p>
 
-        <div class="input-group">
-            <label>Name:</label>
-            <input type="text" id="name" placeholder="Enter your name">
+    <header>
+        <div class="logo-area">
+            <div class="nasa-logo"></div>
+            <div>
+                <div class="mission-title">Pre-Flight</div>
+                <div class="mission-id">STS-135</div>
+            </div>
         </div>
+        <div class="status-blink">SYSTEMS NOMINAL</div>
+    </header>
 
-        <div class="input-group">
-            <label>Email:</label>
-            <input type="email" id="email" placeholder="Enter your email">
-        </div>
-
-        <div class="input-group">
-            <label>Message:</label>
-            <textarea id="message" placeholder="Enter your message"></textarea>
-        </div>
-
-        <div class="input-group">
-            <label>Encryption Key:</label>
-            <input type="password" id="password" placeholder="Enter encryption key">
-        </div>
-
-        <button class="btn" onclick="encryptMessage()">🔒 Encrypt</button>
-
-        <h2>Encrypted Output</h2>
-        <textarea id="encryptedMessage" readonly></textarea>
-
-        <button class="btn copy-btn" onclick="copyText()">📋 Copy Encrypted Message</button>
-        <p class="info-text">Transmit encrypted data securely.</p>
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
     </div>
 
-    <script src="script.js"></script>
+    <main id="checklist">
+        </main>
+
+    <div class="launch-control">
+        <button id="launchBtn" class="launch-btn" onclick="initiateLaunch()">Awaiting Checklist</button>
+    </div>
+
+    <div class="launch-overlay" id="overlay">
+        <div class="rocket">🚀</div>
+        <h1 style="font-family: var(--font-tech); color: var(--hud-green);">LIFTOFF DETECTED</h1>
+        <p style="color: #888; margin-top: 10px;">Godspeed, Atlantis.</p>
+    </div>
+
+    <script>
+        // Data Structure for the Space Shuttle (STS) Checklist
+        const flightData = [
+            {
+                phase: "T-Minus 20m - Terminal Count",
+                items: [
+                    { id: "gls", title: "Verify GLS Auto Sequence", meta: "Ground Launch Sequencer" },
+                    { id: "imu", title: "IMU Alignment", meta: "Inertial Measurement Unit" },
+                    { id: "vent", title: "Close Vent Valves", meta: "Ext Tank Prep" }
+                ]
+            },
+            {
+                phase: "T-Minus 9m - Built-In Hold",
+                items: [
+                    { id: "access", title: "Retract Orbiter Access Arm", meta: "OAA Retraction" },
+                    { id: "recorder", title: "Activate Flight Recorders", meta: "Ops Recorder 1/2" },
+                    { id: "apu", title: "Start APU 1, 2, 3", meta: "Auxiliary Power Units" }
+                ]
+            },
+            {
+                phase: "T-Minus 5m - Aero/Engines",
+                items: [
+                    { id: "aero", title: "Aerosurface Profile Test", meta: "Hydraulics Check" },
+                    { id: "gimbal", title: "SSME Gimbal Test", meta: "Main Engine Motion" },
+                    { id: "lox", title: "LOX Fill & Drain", meta: "Liquid Oxygen Valve" }
+                ]
+            },
+            {
+                phase: "T-Minus 31s - Auto Sequence",
+                items: [
+                    { id: "comp", title: "GLS Go for Auto Seq", meta: "Handover to Onboard Comp" },
+                    { id: "srb_power", title: "SRB HPU Start", meta: "Solid Rocket Boosters" },
+                    { id: "sound", title: "Sound Suppression Water", meta: "Pad Deluge System" }
+                ]
+            },
+            {
+                phase: "T-Minus 10s - Ignition",
+                items: [
+                    { id: "burn", title: "Hydrogen Burnoff System", meta: "Sparklers Active" },
+                    { id: "ssme", title: "Main Engine Start", meta: "T-6.6 Seconds" },
+                    { id: "liftoff", title: "SRB Ignition", meta: "T-0 Seconds" }
+                ]
+            }
+        ];
+
+        const checklistEl = document.getElementById('checklist');
+        const progressBar = document.getElementById('progressBar');
+        const launchBtn = document.getElementById('launchBtn');
+        let checkedCount = 0;
+        let totalCount = 0;
+
+        // Initialize UI
+        function renderList() {
+            flightData.forEach(group => {
+                // Header
+                const h = document.createElement('div');
+                h.className = 'phase-header';
+                h.innerText = group.phase;
+                checklistEl.appendChild(h);
+
+                // Group
+                const g = document.createElement('div');
+                g.className = 'checklist-group';
+
+                group.items.forEach(item => {
+                    totalCount++;
+                    const row = document.createElement('div');
+                    row.className = 'check-item';
+                    row.onclick = () => toggleCheck(row);
+                    row.innerHTML = `
+                        <div class="checkbox"></div>
+                        <div class="item-text">
+                            <div class="item-title">${item.title}</div>
+                            <div class="item-meta">${item.meta}</div>
+                        </div>
+                    `;
+                    g.appendChild(row);
+                });
+                checklistEl.appendChild(g);
+            });
+        }
+
+        // Handle Toggles
+        function toggleCheck(el) {
+            // Haptic feedback (if supported by OS context, otherwise visual only)
+            if (navigator.vibrate) navigator.vibrate(10);
+
+            if (el.classList.contains('checked')) {
+                el.classList.remove('checked');
+                checkedCount--;
+            } else {
+                el.classList.add('checked');
+                checkedCount++;
+            }
+            updateStatus();
+        }
+
+        // Update Progress and Button State
+        function updateStatus() {
+            const percent = (checkedCount / totalCount) * 100;
+            progressBar.style.width = percent + '%';
+
+            if (checkedCount === totalCount) {
+                launchBtn.classList.add('ready');
+                launchBtn.innerText = "INITIATE LAUNCH";
+            } else {
+                launchBtn.classList.remove('ready');
+                launchBtn.innerText = `Pending Checks (${checkedCount}/${totalCount})`;
+            }
+        }
+
+        // Final Animation
+        function initiateLaunch() {
+            if (checkedCount !== totalCount) return;
+            
+            // Haptic
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 500]);
+            
+            const overlay = document.getElementById('overlay');
+            overlay.classList.add('active');
+            
+            // Reset after 5 seconds for replay
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                // Optional: Reset checklist? 
+                // document.querySelectorAll('.check-item').forEach(e => e.classList.remove('checked'));
+                // checkedCount = 0; updateStatus();
+            }, 5000);
+        }
+
+        // Run
+        renderList();
+    </script>
 </body>
 </html>
