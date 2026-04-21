@@ -1,407 +1,1270 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#000000">
-    <title>STS Flight Data File</title>
-    <style>
-        /* --- RESET & VARIABLES --- */
-        :root {
-            --nasa-blue: #0B3D91;
-            --nasa-red: #FC3D21;
-            --hud-cyan: #00F0FF;
-            --hud-green: #00FF41;
-            --hud-amber: #FFB000;
-            --glass-bg: rgba(20, 20, 30, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --blur: 20px;
-            --font-tech: 'Courier New', Courier, monospace;
-            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            --safe-top: env(safe-area-inset-top);
-            --safe-bottom: env(safe-area-inset-bottom);
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guard-Tech Machining Services Ltd</title>
+  <meta name="description" content="Precision machining, machine guarding, swarf and coolant management, and fabrication services for high-integrity industries across the UK." />
+  <style>
+    :root {
+      --navy: #0B1D33;
+      --blue: #005688;
+      --steel: #627B90;
+      --light: #E5E7EA;
+      --white: #FFFFFF;
+      --accent: #E87400;
+      --bg: #f7f9fb;
+      --text: #132235;
+      --muted: #5f6c7a;
+      --border: rgba(11, 29, 51, 0.12);
+      --shadow: 0 18px 50px rgba(11, 29, 51, 0.08);
+      --radius: 20px;
+      --radius-sm: 14px;
+      --max: 1200px;
+    }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
-        
-        body {
-            background-color: #000;
-            background-image: 
-                radial-gradient(circle at 50% 10%, #1a1a2e 0%, #000 60%),
-                repeating-linear-gradient(0deg, transparent 0, transparent 1px, rgba(0, 240, 255, 0.03) 1px, rgba(0, 240, 255, 0.03) 2px);
-            background-size: 100% 100%, 100% 4px;
-            color: #fff;
-            font-family: var(--font-ui);
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        /* --- HEADER --- */
-        header {
-            padding: calc(var(--safe-top) + 16px) 24px 16px;
-            background: rgba(0,0,0,0.8);
-            border-bottom: 1px solid var(--glass-border);
-            backdrop-filter: blur(var(--blur));
-            -webkit-backdrop-filter: blur(var(--blur));
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    html {
+      scroll-behavior: smooth;
+    }
 
-        .logo-area { display: flex; align-items: center; gap: 12px; }
-        
-        /* CSS-only NASA Meatball Approximation for speed/compatibility */
-        .nasa-logo {
-            width: 44px; height: 44px;
-            background: var(--nasa-blue);
-            border-radius: 50%;
-            position: relative;
-            overflow: hidden;
-            border: 2px solid #fff;
-        }
-        .nasa-logo::before {
-            content: ''; position: absolute;
-            top: 12px; left: -10px; width: 60px; height: 10px;
-            background: var(--nasa-red);
-            transform: rotate(-20deg);
-            border-radius: 50%;
-        }
-        .nasa-logo::after {
-            content: 'NASA';
-            position: absolute; top: 12px; left: 2px;
-            color: #fff; font-family: serif; font-weight: bold;
-            font-size: 11px; letter-spacing: 1px;
-        }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #f7f9fb 0%, #eef3f7 100%);
+      line-height: 1.55;
+    }
 
-        .mission-title {
-            font-family: var(--font-tech);
-            font-size: 12px;
-            color: var(--hud-cyan);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-        .mission-id { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
-        /* --- PROGRESS --- */
-        .progress-container {
-            height: 4px;
-            background: rgba(255,255,255,0.1);
-            width: 100%;
-        }
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background: var(--hud-green);
-            box-shadow: 0 0 10px var(--hud-green);
-            transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
+    img {
+      max-width: 100%;
+      display: block;
+    }
 
-        /* --- CHECKLIST SCROLL AREA --- */
-        main {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 16px calc(var(--safe-bottom) + 100px);
-            scroll-behavior: smooth;
-        }
+    .container {
+      width: min(calc(100% - 2rem), var(--max));
+      margin: 0 auto;
+    }
 
-        .phase-header {
-            font-family: var(--font-tech);
-            color: var(--hud-amber);
-            font-size: 11px;
-            margin: 24px 0 8px 8px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            opacity: 0.8;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .phase-header::after {
-            content: ''; flex: 1; height: 1px; background: var(--hud-amber); opacity: 0.3;
-        }
+    .topbar {
+      background: var(--navy);
+      color: rgba(255,255,255,0.85);
+      font-size: 0.92rem;
+    }
 
-        .checklist-group {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            overflow: hidden;
-            margin-bottom: 8px;
-            backdrop-filter: blur(10px);
-        }
+    .topbar .container {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.8rem 0;
+      flex-wrap: wrap;
+    }
 
-        .check-item {
-            display: flex;
-            align-items: center;
-            padding: 18px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            transition: background 0.2s;
-            cursor: pointer;
-            position: relative;
-        }
-        .check-item:last-child { border-bottom: none; }
-        .check-item:active { background: rgba(255,255,255,0.05); }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(14px);
+      background: rgba(247, 249, 251, 0.84);
+      border-bottom: 1px solid var(--border);
+    }
 
-        /* Checkbox Design */
-        .checkbox {
-            width: 24px; height: 24px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 6px;
-            margin-right: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        
-        .check-item.checked .checkbox {
-            background: var(--hud-green);
-            border-color: var(--hud-green);
-            box-shadow: 0 0 12px rgba(0, 255, 65, 0.4);
-        }
-        
-        .check-item.checked .checkbox::after {
-            content: '';
-            width: 6px; height: 12px;
-            border: solid #000;
-            border-width: 0 2px 2px 0;
-            transform: rotate(45deg) translate(-1px, -1px);
-        }
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 0;
+    }
 
-        .item-text { flex: 1; }
-        .item-title { font-size: 16px; font-weight: 500; margin-bottom: 2px; color: #fff; }
-        .item-meta { 
-            font-family: var(--font-tech); 
-            font-size: 11px; 
-            color: rgba(255,255,255,0.5); 
-            text-transform: uppercase;
-        }
-        .check-item.checked .item-title { color: rgba(255,255,255,0.4); text-decoration: line-through; }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      min-width: 0;
+    }
 
-        /* --- FOOTER ACTION --- */
-        .launch-control {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            padding: 20px 24px calc(var(--safe-bottom) + 20px);
-            background: linear-gradient(to top, rgba(0,0,0,1) 20%, rgba(0,0,0,0));
-            z-index: 200;
-            text-align: center;
-            pointer-events: none; /* Let clicks pass through until active */
-        }
+    .logo-mark {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      position: relative;
+      box-shadow: var(--shadow);
+      flex-shrink: 0;
+    }
 
-        .launch-btn {
-            background: #222;
-            color: #555;
-            border: 1px solid #333;
-            width: 100%;
-            padding: 18px;
-            border-radius: 16px;
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transition: all 0.3s;
-            pointer-events: auto;
-        }
+    .logo-mark::before,
+    .logo-mark::after {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.9);
+    }
 
-        .launch-btn.ready {
-            background: var(--nasa-red);
-            color: white;
-            border: 1px solid #ff5e5e;
-            box-shadow: 0 0 30px rgba(252, 61, 33, 0.4);
-            cursor: pointer;
-        }
-        .launch-btn.ready:active { transform: scale(0.98); }
+    .logo-mark::after {
+      inset: 20px 16px 10px 16px;
+      border-radius: 0 0 14px 14px;
+      border-top: 0;
+      background: rgba(255,255,255,0.15);
+    }
 
-        /* --- ANIMATIONS --- */
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-        .status-blink { animation: pulse 2s infinite; color: var(--hud-green); font-family: var(--font-tech); font-size: 10px; margin-left: auto; }
+    .brand-text {
+      min-width: 0;
+    }
 
-        /* --- MODAL --- */
-        .launch-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            z-index: 1000;
-            display: flex; flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 0; pointer-events: none;
-            transition: opacity 1s;
-        }
-        .launch-overlay.active { opacity: 1; pointer-events: auto; }
-        .rocket { font-size: 80px; margin-bottom: 20px; animation: shake 0.5s infinite alternate; display: none; }
-        .launch-overlay.active .rocket { display: block; }
-        @keyframes shake { from { transform: translateY(0px); } to { transform: translateY(5px); } }
-    </style>
+    .brand-text strong {
+      display: block;
+      font-size: 1rem;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-text span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-links a {
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.96rem;
+    }
+
+    .nav-links a:hover,
+    .nav-links a:focus-visible {
+      color: var(--blue);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.95rem 1.35rem;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .btn:hover,
+    .btn:focus-visible {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--white);
+      box-shadow: 0 12px 30px rgba(232, 116, 0, 0.28);
+    }
+
+    .btn-secondary {
+      background: var(--white);
+      color: var(--navy);
+      border: 1px solid var(--border);
+    }
+
+    .hero {
+      padding: 4.8rem 0 3rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(0, 86, 136, 0.08);
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 0.88rem;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4.5rem);
+      line-height: 1.02;
+      margin: 0 0 1rem;
+      letter-spacing: -0.03em;
+    }
+
+    .hero p {
+      font-size: 1.08rem;
+      color: var(--muted);
+      max-width: 62ch;
+      margin: 0 0 1.5rem;
+    }
+
+    .hero-actions,
+    .quote-actions {
+      display: flex;
+      gap: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-points {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+      margin-top: 1.75rem;
+    }
+
+    .point {
+      background: rgba(255,255,255,0.82);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .point strong {
+      display: block;
+      font-size: 1.3rem;
+      color: var(--navy);
+      margin-bottom: 0.2rem;
+    }
+
+    .hero-card {
+      background: linear-gradient(180deg, var(--navy), #102844);
+      color: var(--white);
+      border-radius: 28px;
+      padding: 1.4rem;
+      box-shadow: 0 30px 70px rgba(11, 29, 51, 0.22);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: auto -10% -30% auto;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(232,116,0,0.35), rgba(232,116,0,0));
+      border-radius: 50%;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .machine-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .machine-card {
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 1rem;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .machine-card small {
+      color: rgba(255,255,255,0.72);
+      display: block;
+      margin-top: 0.25rem;
+    }
+
+    section {
+      padding: 2.5rem 0;
+    }
+
+    .section-head {
+      margin-bottom: 1.4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(1.7rem, 3.2vw, 2.7rem);
+      letter-spacing: -0.03em;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 60ch;
+    }
+
+    .services-grid,
+    .industry-grid,
+    .resource-grid,
+    .stats-grid,
+    .process-grid,
+    .trust-grid,
+    .values-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .services-grid,
+    .resource-grid,
+    .trust-grid,
+    .values-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .industry-grid,
+    .process-grid,
+    .stats-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.35rem;
+      box-shadow: var(--shadow);
+    }
+
+    .icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(0, 86, 136, 0.1);
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      font-weight: 900;
+      margin-bottom: 0.9rem;
+    }
+
+    .card h3,
+    .card h4 {
+      margin: 0 0 0.55rem;
+      font-size: 1.1rem;
+    }
+
+    .card p,
+    .card li {
+      color: var(--muted);
+    }
+
+    .card ul {
+      padding-left: 1rem;
+      margin: 0.75rem 0 0;
+    }
+
+    .capability-wrap {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .spec-table th,
+    .spec-table td {
+      padding: 0.95rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .spec-table th {
+      background: #edf4f8;
+      color: var(--navy);
+      font-size: 0.95rem;
+    }
+
+    .spec-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .filter-btn {
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--navy);
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .filter-btn.active {
+      background: var(--navy);
+      color: var(--white);
+      border-color: var(--navy);
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .badge {
+      padding: 0.7rem 0.95rem;
+      border-radius: 999px;
+      background: rgba(0, 86, 136, 0.08);
+      color: var(--blue);
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .quote-box {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: var(--white);
+      border-radius: 28px;
+      padding: 2rem;
+      box-shadow: 0 24px 60px rgba(11, 29, 51, 0.24);
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+
+    .quote-box p,
+    .quote-box li,
+    .quote-box label,
+    .quote-box .small {
+      color: rgba(255,255,255,0.86);
+    }
+
+    form {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.9rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: var(--white);
+      padding: 0.95rem 1rem;
+      border-radius: 14px;
+      font: inherit;
+      outline: none;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: rgba(255,255,255,0.55);
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 1rem;
+    }
+
+    .contact-card,
+    .map-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.35rem;
+      box-shadow: var(--shadow);
+    }
+
+    .map-frame {
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      min-height: 340px;
+      background: linear-gradient(135deg, #dbe4ec, #f6f9fc);
+      position: relative;
+    }
+
+    .map-frame iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 340px;
+      border: 0;
+    }
+
+    .footer {
+      background: var(--navy);
+      color: rgba(255,255,255,0.84);
+      margin-top: 2rem;
+      padding: 2rem 0;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr 0.8fr;
+      gap: 1rem;
+    }
+
+    .footer h4 {
+      color: var(--white);
+      margin-top: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .mobile-toggle {
+      display: none;
+      border: 1px solid var(--border);
+      background: var(--white);
+      border-radius: 12px;
+      padding: 0.7rem 0.85rem;
+      font-weight: 800;
+    }
+
+    .success {
+      display: none;
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.16);
+      padding: 0.9rem 1rem;
+      border-radius: 14px;
+      color: var(--white);
+      font-weight: 700;
+    }
+
+    @media (max-width: 1080px) {
+      .hero-grid,
+      .capability-wrap,
+      .quote-box,
+      .contact-grid,
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .services-grid,
+      .resource-grid,
+      .trust-grid,
+      .values-grid,
+      .industry-grid,
+      .process-grid,
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 800px) {
+      .nav {
+        align-items: flex-start;
+      }
+
+      .mobile-toggle {
+        display: inline-flex;
+      }
+
+      .nav-links {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+        padding-top: 0.8rem;
+      }
+
+      .nav-links.open {
+        display: flex;
+      }
+
+      .hero-points,
+      .services-grid,
+      .resource-grid,
+      .trust-grid,
+      .values-grid,
+      .industry-grid,
+      .process-grid,
+      .stats-grid,
+      .form-grid,
+      .machine-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding-top: 3.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
+  <div class="topbar">
+    <div class="container">
+      <div>Precision machining, machine guarding and swarf management for high-integrity industries.</div>
+      <div>ISO 9001:2015 • CHAS • PUWER-focused engineering support</div>
+    </div>
+  </div>
 
-    <header>
-        <div class="logo-area">
-            <div class="nasa-logo"></div>
-            <div>
-                <div class="mission-title">Pre-Flight</div>
-                <div class="mission-id">STS-135</div>
-            </div>
+  <header>
+    <div class="container nav">
+      <a href="#home" class="brand" aria-label="Guard-Tech Machining Services Ltd home">
+        <div class="logo-mark" aria-hidden="true"></div>
+        <div class="brand-text">
+          <strong>Guard-Tech Machining Services Ltd</strong>
+          <span>Engineering precision. Protected by experience.</span>
         </div>
-        <div class="status-blink">SYSTEMS NOMINAL</div>
-    </header>
+      </a>
 
-    <div class="progress-container">
-        <div class="progress-bar" id="progressBar"></div>
+      <button class="mobile-toggle" id="mobileToggle" aria-expanded="false" aria-controls="navLinks">Menu</button>
+
+      <nav class="nav-links" id="navLinks">
+        <a href="#services">Services</a>
+        <a href="#capabilities">Capabilities</a>
+        <a href="#industries">Industries</a>
+        <a href="#quality">Quality</a>
+        <a href="#about">About</a>
+        <a href="#resources">Resources</a>
+        <a href="#contact">Contact</a>
+        <a href="#quote" class="btn btn-primary">Get a Quote</a>
+      </nav>
     </div>
+  </header>
 
-    <main id="checklist">
-        </main>
+  <main>
+    <section class="hero" id="home">
+      <div class="container hero-grid">
+        <div class="reveal">
+          <div class="eyebrow">New combined capability after the Guard-Tech + RGS Precision merger</div>
+          <h1>Precision machining and machine protection, under one name.</h1>
+          <p>
+            Guard-Tech Machining Services Ltd brings together specialist CNC machining, machine guarding,
+            swarf and coolant handling, fabrication, and compliance-led engineering support for aerospace,
+            defence, energy, subsea, medical and advanced manufacturing customers.
+          </p>
+          <div class="hero-actions">
+            <a href="#quote" class="btn btn-primary">Request a Quote</a>
+            <a href="#services" class="btn btn-secondary">Explore Services</a>
+          </div>
 
-    <div class="launch-control">
-        <button id="launchBtn" class="launch-btn" onclick="initiateLaunch()">Awaiting Checklist</button>
+          <div class="hero-points">
+            <div class="point">
+              <strong>1997</strong>
+              <span>Guard-Tech heritage in machine protection and safety systems.</span>
+            </div>
+            <div class="point">
+              <strong>60+ yrs</strong>
+              <span>Combined leadership and practical engineering experience.</span>
+            </div>
+            <div class="point">
+              <strong>UK-based</strong>
+              <span>Manufacturing support from West Yorkshire for demanding sectors.</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="hero-card reveal" aria-label="featured capabilities">
+          <h2 style="margin-top:0; font-size:1.5rem;">Core capabilities</h2>
+          <p style="color: rgba(255,255,255,0.8); margin-bottom:0;">
+            A combined offer built around precision, reliability, safety, and responsive project support.
+          </p>
+
+          <div class="machine-grid">
+            <div class="machine-card">
+              <strong>CNC Turning</strong>
+              <small>One-offs, repeat work and high-integrity components.</small>
+            </div>
+            <div class="machine-card">
+              <strong>CNC Milling</strong>
+              <small>Flexible production using modern machining centres.</small>
+            </div>
+            <div class="machine-card">
+              <strong>Machine Guarding</strong>
+              <small>Way covers, roller blinds, laser bellows and PUWER-focused solutions.</small>
+            </div>
+            <div class="machine-card">
+              <strong>Fabrication</strong>
+              <small>Welded assemblies, press brake work and bespoke structures.</small>
+            </div>
+          </div>
+
+          <div class="panel">
+            <strong>Why clients choose us</strong>
+            <ul>
+              <li>Single supplier for protection systems and precision-machined parts</li>
+              <li>Built for blue-chip and compliance-sensitive environments</li>
+              <li>Collaborative quoting, design input and practical after-sales support</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>Built to inspire confidence</h2>
+            <p>These values shape both the visual identity and the customer experience across the new brand.</p>
+          </div>
+        </div>
+
+        <div class="values-grid">
+          <article class="card reveal">
+            <div class="icon">P</div>
+            <h3>Precision</h3>
+            <p>Exacting workmanship, controlled processes, and attention to tolerances across every stage of production.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">R</div>
+            <h3>Reliability</h3>
+            <p>Clear communication, dependable delivery, and a practical approach to quality and compliance.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">I</div>
+            <h3>Innovation</h3>
+            <p>CAD/CAM, 3D design thinking and modern equipment used to solve engineering challenges efficiently.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">S</div>
+            <h3>Safety</h3>
+            <p>Guarding heritage and PUWER-aware design thinking built directly into the company proposition.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="services">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>Service lines</h2>
+            <p>Structured around the merged company’s core capabilities so engineers and buyers can find the right support quickly.</p>
+          </div>
+        </div>
+
+        <div class="services-grid">
+          <article class="card reveal">
+            <div class="icon">01</div>
+            <h3>Machine Guarding & Safety</h3>
+            <p>Custom guarding, telescopic way covers, roller blinds, laser bellows, apron covers, and support aligned with PUWER-driven improvement work.</p>
+            <ul>
+              <li>Way covers and machine protection</li>
+              <li>Safety guarding upgrades</li>
+              <li>Compliance-led design support</li>
+            </ul>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">02</div>
+            <h3>Swarf & Coolant Management</h3>
+            <p>Swarf conveyor systems, coolant handling and practical shop-floor solutions designed to improve cleanliness, uptime and maintenance efficiency.</p>
+            <ul>
+              <li>Swarf conveyor systems</li>
+              <li>Coolant filtration concepts</li>
+              <li>Chip and fluid management</li>
+            </ul>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">03</div>
+            <h3>Precision Machining</h3>
+            <p>CNC milling, CNC turning, manual machining and CAD/CAM programming for bespoke parts, prototypes and repeat production work.</p>
+            <ul>
+              <li>CNC turning and milling</li>
+              <li>Manual turning, milling and drilling</li>
+              <li>One-off and batch component manufacture</li>
+            </ul>
+          </article>
+
+          <article class="card reveal">
+            <div class="icon">04</div>
+            <h3>Fabrication & Assembly</h3>
+            <p>Custom enclosures, structural frames, welded fabrications and press-brake work supporting broader engineering projects and integrated solutions.</p>
+            <ul>
+              <li>MIG, TIG and MMA welding</li>
+              <li>Press brake work</li>
+              <li>Custom assemblies and frames</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="capabilities">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>Capabilities and equipment</h2>
+            <p>Use the filters to surface relevant capabilities for enquiries, tender discussions or internal review.</p>
+          </div>
+        </div>
+
+        <div class="capability-wrap reveal">
+          <div class="card">
+            <div class="filter-row" id="filters">
+              <button class="filter-btn active" data-filter="all">All</button>
+              <button class="filter-btn" data-filter="machining">Machining</button>
+              <button class="filter-btn" data-filter="guarding">Guarding</button>
+              <button class="filter-btn" data-filter="fabrication">Fabrication</button>
+            </div>
+            <div id="capabilityCards">
+              <article class="card capability-item" data-category="machining" style="margin-bottom: 1rem; box-shadow:none;">
+                <h3>Turning capacity</h3>
+                <p>Support for components across a wide size range, covering one-off bespoke work and repeat production.</p>
+              </article>
+              <article class="card capability-item" data-category="machining" style="margin-bottom: 1rem; box-shadow:none;">
+                <h3>Milling capacity</h3>
+                <p>CNC machining centre capability with CAD/CAM-driven workflows and flexible fixture planning.</p>
+              </article>
+              <article class="card capability-item" data-category="guarding" style="margin-bottom: 1rem; box-shadow:none;">
+                <h3>Machine protection systems</h3>
+                <p>Way covers, bellows, blinds and guarding systems designed to improve reliability and operator protection.</p>
+              </article>
+              <article class="card capability-item" data-category="fabrication" style="box-shadow:none;">
+                <h3>Bespoke fabrication</h3>
+                <p>Supporting structures, frames and assemblies with welded and formed elements where required.</p>
+              </article>
+            </div>
+          </div>
+
+          <div>
+            <table class="spec-table" aria-label="equipment specification overview">
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>Capability</th>
+                  <th>Typical application</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CNC Turning</td>
+                  <td>Haas and Harrison turning equipment with broad diameter handling and practical batch flexibility</td>
+                  <td>Shafts, sleeves, rings, precision cylindrical parts</td>
+                </tr>
+                <tr>
+                  <td>CNC Milling</td>
+                  <td>HAAS VF-series style capability with CAD/CAM programming and tool carousel efficiency</td>
+                  <td>Blocks, plates, housings, machined features and prototypes</td>
+                </tr>
+                <tr>
+                  <td>Guarding</td>
+                  <td>Custom covers, safety barriers, enclosure work and machine-specific protection systems</td>
+                  <td>Retrofitting, compliance upgrades, asset protection</td>
+                </tr>
+                <tr>
+                  <td>Fabrication</td>
+                  <td>Welding and formed metalwork for integrated engineering packages</td>
+                  <td>Frames, supports, guards, brackets and custom structures</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="badge-row">
+              <span class="badge">CAD/CAM programming</span>
+              <span class="badge">Prototype to batch</span>
+              <span class="badge">High-integrity sectors</span>
+              <span class="badge">Custom engineering support</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="industries">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>Industries served</h2>
+            <p>The combined positioning is aimed at sectors where precision, traceability, safety and delivery confidence matter.</p>
+          </div>
+        </div>
+
+        <div class="industry-grid">
+          <article class="card reveal">
+            <h3>Aerospace & Defence</h3>
+            <p>Support for tightly controlled engineering environments where performance, documentation and reliability are critical.</p>
+          </article>
+          <article class="card reveal">
+            <h3>Subsea & Energy</h3>
+            <p>Capability aligned with demanding subsea, oil and gas, and broader energy-sector requirements.</p>
+          </article>
+          <article class="card reveal">
+            <h3>Medical & Advanced Manufacturing</h3>
+            <p>Clean, precise engineering support for specialist equipment, fixtures, components and safety-led machinery upgrades.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="quality">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>Quality, trust and compliance</h2>
+            <p>Trust signals should be highly visible across the new site to reassure engineering buyers and compliance-focused teams.</p>
+          </div>
+        </div>
+
+        <div class="trust-grid">
+          <article class="card reveal">
+            <div class="icon">ISO</div>
+            <h3>ISO 9001:2015 mindset</h3>
+            <p>Quality-led working practices, documented processes and a clear commitment to dependable output.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">CH</div>
+            <h3>CHAS-aligned assurance</h3>
+            <p>Visible assurance markers that support supplier onboarding and pre-qualification conversations.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">PU</div>
+            <h3>PUWER-aware support</h3>
+            <p>Safety guarding heritage that helps clients address machine protection and operational risk practically.</p>
+          </article>
+          <article class="card reveal">
+            <div class="icon">QC</div>
+            <h3>Inspection-focused delivery</h3>
+            <p>Calibration, checking, reporting and traceability messaging should be central to project communication.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>How projects move forward</h2>
+            <p>This section translates the report’s emphasis on partnership into a simple process customers can understand fast.</p>
+          </div>
+        </div>
+
+        <div class="process-grid">
+          <article class="card reveal">
+            <h3>1. Review</h3>
+            <p>Share drawings, requirements, quantities or site challenges. We assess feasibility and the right production route.</p>
+          </article>
+          <article class="card reveal">
+            <h3>2. Plan</h3>
+            <p>We scope machining, guarding, fabrication and compliance considerations, then prepare a focused proposal.</p>
+          </article>
+          <article class="card reveal">
+            <h3>3. Deliver</h3>
+            <p>Manufacture, inspect and communicate clearly through to delivery, installation support or follow-on work.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>About the new company</h2>
+            <p>The merged identity combines Guard-Tech’s machine protection heritage with RGS Precision’s machining specialism.</p>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="card reveal">
+            <h3>Guard-Tech heritage</h3>
+            <p>Founded in 1997 with a strong reputation in machine safety, telescopic way covers and swarf management solutions.</p>
+          </article>
+          <article class="card reveal">
+            <h3>RGS machining expertise</h3>
+            <p>Directors with more than 60 years of combined experience across subsea, oil and gas, and other high-integrity sectors.</p>
+          </article>
+          <article class="card reveal">
+            <h3>Forward-looking platform</h3>
+            <p>A scalable engineering brand designed for long-term digital growth, improved enquiries and stronger market clarity.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="resources">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>Resources</h2>
+            <p>The report recommended a content-led section to support SEO, trust-building and ongoing customer education.</p>
+          </div>
+        </div>
+
+        <div class="resource-grid">
+          <article class="card reveal">
+            <h3>Capability guides</h3>
+            <p>Downloadable overviews for machining ranges, plant, materials, and typical project types.</p>
+          </article>
+          <article class="card reveal">
+            <h3>Compliance resources</h3>
+            <p>PUWER checklists, safety-focused notes and practical guides for machine guarding discussions.</p>
+          </article>
+          <article class="card reveal">
+            <h3>Case studies</h3>
+            <p>Outcome-led stories by industry, demonstrating quality, responsiveness and engineering problem-solving.</p>
+          </article>
+          <article class="card reveal">
+            <h3>News & insight</h3>
+            <p>Articles on legislation changes, workshop investment, new capacity and technical advice for buyers and engineers.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="quote">
+      <div class="container">
+        <div class="quote-box reveal">
+          <div>
+            <h2 style="margin-top:0;">Start a new enquiry</h2>
+            <p>
+              Whether you need CNC machining, guarding upgrades, swarf management or a mixed-scope engineering package,
+              this form is designed to create a fast and clear first contact.
+            </p>
+            <ul>
+              <li>Prototype, one-off and batch enquiries</li>
+              <li>Machine guarding and protection upgrades</li>
+              <li>Fabrication, assembly and support work</li>
+            </ul>
+            <div class="quote-actions">
+              <a href="#contact" class="btn btn-secondary">View Contact Details</a>
+            </div>
+          </div>
+
+          <div>
+            <div class="success" id="formSuccess">Thanks — your draft enquiry has been captured locally in this demo.</div>
+            <form id="quoteForm">
+              <div class="form-grid">
+                <div>
+                  <label for="name">Name</label>
+                  <input id="name" name="name" type="text" placeholder="Your name" required />
+                </div>
+                <div>
+                  <label for="company">Company</label>
+                  <input id="company" name="company" type="text" placeholder="Company name" required />
+                </div>
+              </div>
+              <div class="form-grid">
+                <div>
+                  <label for="email">Email</label>
+                  <input id="email" name="email" type="email" placeholder="name@company.co.uk" required />
+                </div>
+                <div>
+                  <label for="service">Service needed</label>
+                  <select id="service" name="service" required>
+                    <option value="">Select a service</option>
+                    <option>Precision Machining</option>
+                    <option>Machine Guarding & Safety</option>
+                    <option>Swarf & Coolant Management</option>
+                    <option>Fabrication & Assembly</option>
+                    <option>Mixed Project / Unsure</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label for="message">Project details</label>
+                <textarea id="message" name="message" placeholder="Tell us about quantities, materials, drawings, timescales or site requirements." required></textarea>
+              </div>
+              <button class="btn btn-primary" type="submit">Submit Enquiry</button>
+              <div class="small">Demo behaviour only: submissions are stored in your browser so the page feels functional without a backend.</div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="container">
+        <div class="section-head reveal">
+          <div>
+            <h2>Contact</h2>
+            <p>A high-conversion contact section with direct details, opening times and a location reference point.</p>
+          </div>
+        </div>
+
+        <div class="contact-grid">
+          <article class="contact-card reveal">
+            <h3>Guard-Tech Machining Services Ltd</h3>
+            <p class="muted">West Yorkshire engineering support combining machining capability with machine protection expertise.</p>
+            <p><strong>Phone</strong><br>+44 (0)1422 881881</p>
+            <p><strong>Email</strong><br>sales@guard-tech-machining.co.uk</p>
+            <p><strong>Hours</strong><br>Mon–Thu 07:30–17:00<br>Fri 07:30–14:00</p>
+            <p><strong>Location</strong><br>Hebden Bridge / Mytholmroyd area, West Yorkshire</p>
+          </article>
+
+          <div class="map-card reveal">
+            <h3>Location overview</h3>
+            <div class="map-frame" aria-label="map of West Yorkshire">
+              <iframe title="West Yorkshire map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Hebden%20Bridge%20West%20Yorkshire&z=11&output=embed"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div>
+        <h4>Guard-Tech Machining Services Ltd</h4>
+        <p>
+          A proposed merged brand identity and lead-generation website concept for the acquisition of RGS Precision by Guard-Tech.
+        </p>
+      </div>
+      <div>
+        <h4>Quick links</h4>
+        <p><a href="#services">Services</a></p>
+        <p><a href="#capabilities">Capabilities</a></p>
+        <p><a href="#quote">Get a Quote</a></p>
+      </div>
+      <div>
+        <h4>Focus</h4>
+        <p>Precision machining</p>
+        <p>Machine guarding</p>
+        <p>Engineering trust</p>
+      </div>
     </div>
+  </footer>
 
-    <div class="launch-overlay" id="overlay">
-        <div class="rocket">🚀</div>
-        <h1 style="font-family: var(--font-tech); color: var(--hud-green);">LIFTOFF DETECTED</h1>
-        <p style="color: #888; margin-top: 10px;">Godspeed, Atlantis.</p>
-    </div>
+  <script>
+    const toggle = document.getElementById('mobileToggle');
+    const navLinks = document.getElementById('navLinks');
 
-    <script>
-        // Data Structure for the Space Shuttle (STS) Checklist
-        const flightData = [
-            {
-                phase: "T-Minus 20m - Terminal Count",
-                items: [
-                    { id: "gls", title: "Verify GLS Auto Sequence", meta: "Ground Launch Sequencer" },
-                    { id: "imu", title: "IMU Alignment", meta: "Inertial Measurement Unit" },
-                    { id: "vent", title: "Close Vent Valves", meta: "Ext Tank Prep" }
-                ]
-            },
-            {
-                phase: "T-Minus 9m - Built-In Hold",
-                items: [
-                    { id: "access", title: "Retract Orbiter Access Arm", meta: "OAA Retraction" },
-                    { id: "recorder", title: "Activate Flight Recorders", meta: "Ops Recorder 1/2" },
-                    { id: "apu", title: "Start APU 1, 2, 3", meta: "Auxiliary Power Units" }
-                ]
-            },
-            {
-                phase: "T-Minus 5m - Aero/Engines",
-                items: [
-                    { id: "aero", title: "Aerosurface Profile Test", meta: "Hydraulics Check" },
-                    { id: "gimbal", title: "SSME Gimbal Test", meta: "Main Engine Motion" },
-                    { id: "lox", title: "LOX Fill & Drain", meta: "Liquid Oxygen Valve" }
-                ]
-            },
-            {
-                phase: "T-Minus 31s - Auto Sequence",
-                items: [
-                    { id: "comp", title: "GLS Go for Auto Seq", meta: "Handover to Onboard Comp" },
-                    { id: "srb_power", title: "SRB HPU Start", meta: "Solid Rocket Boosters" },
-                    { id: "sound", title: "Sound Suppression Water", meta: "Pad Deluge System" }
-                ]
-            },
-            {
-                phase: "T-Minus 10s - Ignition",
-                items: [
-                    { id: "burn", title: "Hydrogen Burnoff System", meta: "Sparklers Active" },
-                    { id: "ssme", title: "Main Engine Start", meta: "T-6.6 Seconds" },
-                    { id: "liftoff", title: "SRB Ignition", meta: "T-0 Seconds" }
-                ]
-            }
-        ];
+    toggle.addEventListener('click', () => {
+      const isOpen = navLinks.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+    });
 
-        const checklistEl = document.getElementById('checklist');
-        const progressBar = document.getElementById('progressBar');
-        const launchBtn = document.getElementById('launchBtn');
-        let checkedCount = 0;
-        let totalCount = 0;
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => {
+        navLinks.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      });
+    });
 
-        // Initialize UI
-        function renderList() {
-            flightData.forEach(group => {
-                // Header
-                const h = document.createElement('div');
-                h.className = 'phase-header';
-                h.innerText = group.phase;
-                checklistEl.appendChild(h);
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const items = document.querySelectorAll('.capability-item');
 
-                // Group
-                const g = document.createElement('div');
-                g.className = 'checklist-group';
+    filterButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        const filter = button.dataset.filter;
 
-                group.items.forEach(item => {
-                    totalCount++;
-                    const row = document.createElement('div');
-                    row.className = 'check-item';
-                    row.onclick = () => toggleCheck(row);
-                    row.innerHTML = `
-                        <div class="checkbox"></div>
-                        <div class="item-text">
-                            <div class="item-title">${item.title}</div>
-                            <div class="item-meta">${item.meta}</div>
-                        </div>
-                    `;
-                    g.appendChild(row);
-                });
-                checklistEl.appendChild(g);
-            });
+        items.forEach(item => {
+          const match = filter === 'all' || item.dataset.category === filter;
+          item.style.display = match ? 'block' : 'none';
+        });
+      });
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
         }
+      });
+    }, { threshold: 0.14 });
 
-        // Handle Toggles
-        function toggleCheck(el) {
-            // Haptic feedback (if supported by OS context, otherwise visual only)
-            if (navigator.vibrate) navigator.vibrate(10);
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-            if (el.classList.contains('checked')) {
-                el.classList.remove('checked');
-                checkedCount--;
-            } else {
-                el.classList.add('checked');
-                checkedCount++;
-            }
-            updateStatus();
-        }
+    const quoteForm = document.getElementById('quoteForm');
+    const success = document.getElementById('formSuccess');
 
-        // Update Progress and Button State
-        function updateStatus() {
-            const percent = (checkedCount / totalCount) * 100;
-            progressBar.style.width = percent + '%';
+    const savedEnquiry = localStorage.getItem('gtms-enquiry-draft');
+    if (savedEnquiry) {
+      try {
+        const data = JSON.parse(savedEnquiry);
+        Object.entries(data).forEach(([key, value]) => {
+          const field = quoteForm.elements.namedItem(key);
+          if (field) field.value = value;
+        });
+      } catch (e) {
+        console.warn('Could not restore form draft.');
+      }
+    }
 
-            if (checkedCount === totalCount) {
-                launchBtn.classList.add('ready');
-                launchBtn.innerText = "INITIATE LAUNCH";
-            } else {
-                launchBtn.classList.remove('ready');
-                launchBtn.innerText = `Pending Checks (${checkedCount}/${totalCount})`;
-            }
-        }
+    quoteForm.addEventListener('input', () => {
+      const formData = Object.fromEntries(new FormData(quoteForm).entries());
+      localStorage.setItem('gtms-enquiry-draft', JSON.stringify(formData));
+    });
 
-        // Final Animation
-        function initiateLaunch() {
-            if (checkedCount !== totalCount) return;
-            
-            // Haptic
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 500]);
-            
-            const overlay = document.getElementById('overlay');
-            overlay.classList.add('active');
-            
-            // Reset after 5 seconds for replay
-            setTimeout(() => {
-                overlay.classList.remove('active');
-                // Optional: Reset checklist? 
-                // document.querySelectorAll('.check-item').forEach(e => e.classList.remove('checked'));
-                // checkedCount = 0; updateStatus();
-            }, 5000);
-        }
-
-        // Run
-        renderList();
-    </script>
+    quoteForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const formData = Object.fromEntries(new FormData(quoteForm).entries());
+      localStorage.setItem('gtms-enquiry-last-submit', JSON.stringify({ ...formData, submittedAt: new Date().toISOString() }));
+      success.style.display = 'block';
+      quoteForm.reset();
+      localStorage.removeItem('gtms-enquiry-draft');
+      setTimeout(() => {
+        success.style.display = 'none';
+      }, 4000);
+    });
+  </script>
 </body>
 </html>
